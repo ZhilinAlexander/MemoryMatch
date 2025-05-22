@@ -1,42 +1,20 @@
-//
-//  GameViewController.swift
-//  MemoryMatch
-//
-//  Created by Alexander Zh. on 17.05.25.
-//
-
 import UIKit
 import SpriteKit
-import GameplayKit
 
 class GameViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        if let view = self.view as! SKView? {
-            // Load the SKScene from 'GameScene.sks'
-            if let scene = SKScene(fileNamed: "GameScene") {
-                // Set the scale mode to scale to fit the window
-                scene.scaleMode = .aspectFill
-                
-                // Present the scene
-                view.presentScene(scene)
-            }
-            
-            view.ignoresSiblingOrder = true
-            
-            view.showsFPS = true
-            view.showsNodeCount = true
-        }
-    }
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .allButUpsideDown
-        } else {
-            return .all
-        }
+        // Настройка SpriteKit вью
+        let skView = SKView(frame: self.view.bounds)
+        skView.ignoresSiblingOrder = true
+        self.view.addSubview(skView)
+
+        // Создание и запуск сцены загрузки
+        let scene = LoadingScene(size: skView.bounds.size)
+        scene.scaleMode = .resizeFill
+        skView.presentScene(scene)
     }
 
     override var prefersStatusBarHidden: Bool {

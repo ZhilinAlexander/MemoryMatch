@@ -1,9 +1,3 @@
-//
-//  AppDelegate.swift
-//  MemoryMatch
-//
-//  Created by Alexander Zh. on 17.05.25.
-//
 
 import UIKit
 

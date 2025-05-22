@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2EA633BC2DDDF83E005B77FE /* win.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2EA633B92DDDF83E005B77FE /* win.wav */; };
+		2EA633BD2DDDF83E005B77FE /* match.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2EA633BA2DDDF83E005B77FE /* match.wav */; };
+		2EA633BE2DDDF83E005B77FE /* flip.wav in Resources */ = {isa = PBXBuildFile; fileRef = 2EA633BB2DDDF83E005B77FE /* flip.wav */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		2E5A7C812DD8D4E300AE1CC6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +33,9 @@
 		2E5A7C672DD8D4E200AE1CC6 /* MemoryMatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MemoryMatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E5A7C802DD8D4E300AE1CC6 /* MemoryMatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MemoryMatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E5A7C8A2DD8D4E300AE1CC6 /* MemoryMatchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MemoryMatchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2EA633B92DDDF83E005B77FE /* win.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = win.wav; path = MemoryMatch/Assets.xcassets/win.wav; sourceTree = "<group>"; };
+		2EA633BA2DDDF83E005B77FE /* match.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = match.wav; path = MemoryMatch/Assets.xcassets/match.wav; sourceTree = "<group>"; };
+		2EA633BB2DDDF83E005B77FE /* flip.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = flip.wav; path = MemoryMatch/Assets.xcassets/flip.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -78,6 +87,9 @@
 				2E5A7C692DD8D4E200AE1CC6 /* MemoryMatch */,
 				2E5A7C832DD8D4E300AE1CC6 /* MemoryMatchTests */,
 				2E5A7C8D2DD8D4E300AE1CC6 /* MemoryMatchUITests */,
+				2EA633BB2DDDF83E005B77FE /* flip.wav */,
+				2EA633BA2DDDF83E005B77FE /* match.wav */,
+				2EA633B92DDDF83E005B77FE /* win.wav */,
 				2E5A7C682DD8D4E200AE1CC6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -212,6 +224,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2EA633BC2DDDF83E005B77FE /* win.wav in Resources */,
+				2EA633BD2DDDF83E005B77FE /* match.wav in Resources */,
+				2EA633BE2DDDF83E005B77FE /* flip.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,88 +1,293 @@
-//
-//  GameScene.swift
-//  MemoryMatch
-//
-//  Created by Alexander Zh. on 17.05.25.
-//
-
 import SpriteKit
-import GameplayKit
+import AVFoundation
+import AudioToolbox
 
 class GameScene: SKScene {
     
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
-    
+    //  Переменные игры
+    private var firstCard: SKSpriteNode?
+    private var isProcessing = false
+    private var isGameActive = true
+    private var moves = 0
+    private var startTime: TimeInterval = 0
+    private var timerLabel: SKLabelNode!
+    private var moveLabel: SKLabelNode!
+    private var cardNodes: [SKSpriteNode] = []
+    //фонблока
+    private var statsBackground: SKShapeNode!
+    // Настройки
     override func didMove(to view: SKView) {
+        isGameActive = true
+        setupBackground()
+        setupUI()
+        setupStatsHeader()  //табло счета и таймера
+        setupCards()
+        startTime = CACurrentMediaTime()
+    }
+    // Фон
+    private func setupBackground() {
+        let bg = SKSpriteNode(imageNamed: "BGgames")
+        bg.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        bg.size = size
+        bg.zPosition = -1
+        addChild(bg)
+    }
+    // UI интерфейс: кнопки, таймер, ходы
+    private func setupUI() {
+        // SETTINGS
+        let settings = createButton(named: "Settings", position: CGPoint(x: 60, y: size.height - 90))
+        addChild(settings)
+        // Нижние кнопки: Pause, Left, Undo
+        let pause = createButton(named: "Pause", position: CGPoint(x: 80, y: 120))
+        let left = createButton(named: "Left", position: CGPoint(x: 200, y: 120))
+        let undo = createButton(named: "Undo", position: CGPoint(x: 320, y: 120))
+        addChild(pause)
+        addChild(left)
+        addChild(undo)
+    }
+    private func setupStatsHeader() {
+        let headerWidth = size.width * 0.9
+        let headerHeight = headerWidth * (120.0 / 973.0)
+        let topMargin = size.height * 0.80
         
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
-        }
+        let statsNode = SKSpriteNode(imageNamed: "Group352519")
+        statsNode.size = CGSize(width: headerWidth, height: headerHeight)
+        statsNode.position = CGPoint(x: size.width / 2, y: topMargin)
+        statsNode.zPosition = 2
+        addChild(statsNode)
         
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
+        // Move Label
+        moveLabel = SKLabelNode(text: "Moves: 0")
+        moveLabel.fontName = "AvenirNext-Bold"
+        moveLabel.fontSize = 24
+        moveLabel.fontColor = .white
+        moveLabel.horizontalAlignmentMode = .left
+        moveLabel.verticalAlignmentMode = .center
+        moveLabel.position = CGPoint(x: -headerWidth / 2 + 40, y: 0)
+        statsNode.addChild(moveLabel)
         
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
-        }
+        // Timer Label — справа
+        timerLabel = SKLabelNode(text: "Time: 0s")
+        timerLabel.fontName = "AvenirNext-Bold"
+        timerLabel.fontSize = 24
+        timerLabel.fontColor = .white
+        timerLabel.horizontalAlignmentMode = .right
+        timerLabel.verticalAlignmentMode = .center
+        timerLabel.position = CGPoint(x: headerWidth / 2 - 40, y: 0)
+        statsNode.addChild(timerLabel)
     }
-    
-    
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
+    private func createLabel(text: String, position: CGPoint) -> SKLabelNode {
+        let label = SKLabelNode(text: text)
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 24
+        label.fontColor = .white
+        label.position = position
+        label.zPosition = 2
+        return label
     }
-    
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
+    private func createButton(named: String, position: CGPoint) -> SKSpriteNode {
+        let btn = SKSpriteNode(imageNamed: named)
+        btn.name = named
+        btn.position = position
+        btn.setScale(0.4)
+        btn.zPosition = 2
+        return btn
     }
-    
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
-    }
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if let label = self.label {
-            label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
-        }
+    // Карточки
+    private func setupCards() {
+        // Названия слотов, по 2 каждого → 8 пар = 16 карт
+        let faceNames = (1...8).flatMap { ["Slot\($0)", "Slot\($0)"] }.shuffled()
         
-        for t in touches { self.touchDown(atPoint: t.location(in: self)) }
+        let rows = 4, cols = 4
+        let spacing: CGFloat = 20
+        let cardWidth = size.width * 0.18
+        let cardHeight = cardWidth * 1.2
+        
+        let totalWidth = CGFloat(cols) * cardWidth + CGFloat(cols - 1) * spacing
+        let totalHeight = CGFloat(rows) * cardHeight + CGFloat(rows - 1) * spacing
+        
+        let startX = (size.width - totalWidth) / 2 + cardWidth / 2
+        let startY = size.height / 2 + totalHeight / 2 - cardHeight / 2
+        
+        for row in 0..<rows {
+            for col in 0..<cols {
+                let index = row * cols + col
+                
+                // Карта
+                let card = SKSpriteNode(imageNamed: "SlotBack")
+                card.name = "card_\(index)"
+                card.size = CGSize(width: cardWidth, height: cardHeight)
+                card.position = CGPoint(
+                    x: startX + CGFloat(col) * (cardWidth + spacing),
+                    y: startY - CGFloat(row) * (cardHeight + spacing)
+                )
+                card.zPosition = 1
+                
+                // Добавим в userData: face (название картинки)перемешиваются карты
+                card.userData = [
+                    "face": faceNames[index],
+                    "flipped": false,
+                    "matched": false
+                ]
+                
+                addChild(card)
+                cardNodes.append(card)
+            }
+        }
     }
-    
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchMoved(toPoint: t.location(in: self)) }
-    }
-    
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
-    }
-    
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
-    }
-    
-    
+    //  Таймер
     override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
+        guard isGameActive else { return }
+        let seconds = Int(currentTime - startTime)
+        timerLabel.text = "Time: \(seconds)s"
+    }
+    // Обработка касаний
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !isProcessing, let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        
+        if let node = atPoint(location) as? SKSpriteNode, let name = node.name {
+            
+            //  Список кнопок, которым нужна анимация
+            let animatedButtons = ["Settings", "Pause", "Undo", "Left"]
+            
+            if animatedButtons.contains(name) {
+                let originalScale = node.xScale
+                let pressIn = SKAction.scale(to: 0.9, duration: 0.06)
+                let pressOut = SKAction.scale(to: 1.0, duration: 0.06)
+                let sequence = SKAction.sequence([pressIn, pressOut])
+                
+                node.run(sequence) {
+                    self.handleButtonTap(name)
+                }
+            } else if name.starts(with: "card_") {
+                handleCardTap(node)
+            } else {
+                handleButtonTap(name)
+            }
+        }
+    }
+    // Логика нажатия на карту
+    private func handleCardTap(_ card: SKSpriteNode) {
+        if !isGameActive {
+            isGameActive = true
+        }
+        guard let face = card.userData?["face"] as? String,
+              card.userData?["matched"] as? Bool == false,
+              card.userData?["flipped"] as? Bool == false else { return }
+        
+        flipCard(card, to: face)
+        card.userData?["flipped"] = true
+        
+        if firstCard == nil {
+            firstCard = card
+        } else {
+            isProcessing = true
+            moves += 1
+            moveLabel.text = "Moves: \(moves)"
+            
+            if firstCard?.userData?["face"] as? String == face {
+                // Совпадение
+                firstCard?.userData?["matched"] = true
+                card.userData?["matched"] = true
+                SoundManager.shared.playMatch()  
+                            SoundManager.shared.vibrate()
+                checkForWin()
+                resetSelection()
+            } else {
+                // Не совпало — переворачиваем обратно
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    self.flipCard(self.firstCard!, to: "SlotBack")
+                    self.firstCard?.userData?["flipped"] = false
+                    self.flipCard(card, to: "SlotBack")
+                    card.userData?["flipped"] = false
+                    self.resetSelection()
+                }
+            }
+        }
+    }
+    // пауза - ручная остановка
+    private func handleButtonTap(_ name: String) {
+        switch name {
+        case "Pause":
+            isGameActive.toggle()
+            print("⏸ Pause pressed. Game is now \(isGameActive ? "resumed" : "paused")")
+            
+        case "Undo":
+            reloadGame()
+            
+        case "Left":
+            goToMenu()
+            
+        case "Settings":
+            openSettings()
+            
+        default:
+            print("Unknown button: \(name)")
+        }
+    }
+    private func resetSelection() {
+        firstCard = nil
+        isProcessing = false
+    }
+    
+    private func flipCard(_ card: SKSpriteNode, to name: String) {
+        let flip = SKAction.sequence([
+            SKAction.scaleX(to: 0, duration: 0.15),
+            SKAction.run {
+                SoundManager.shared.playFlip()
+                card.texture = SKTexture(imageNamed: name)
+            },
+            SKAction.scaleX(to: 1, duration: 0.15)
+        ])
+        card.run(flip)
+    }
+    //  Победа
+    private func checkForWin() {
+        let allMatched = cardNodes.allSatisfy { $0.userData?["matched"] as? Bool == true }
+        if allMatched {
+            isGameActive = false  // Остановка таймера
+            showWinScreen()
+        }
+    }
+    // перезапуск игры
+    private func reloadGame() {
+        if let view = self.view {
+            let newScene = GameScene(size: self.size)
+            newScene.scaleMode = .aspectFill
+            view.presentScene(newScene, transition: .fade(withDuration: 0.5))
+        }
+    }
+    // переход в меню
+    private func goToMenu() {
+        if let window = view?.window {
+            let menuVC = MenuViewController()
+            window.rootViewController = menuVC
+            window.makeKeyAndVisible()
+        }
+    }
+    // переход в настройки
+    private func openSettings() {
+        guard let view = self.view,
+              let root = view.window?.rootViewController else { return }
+        
+        let settingsVC = SettingsViewController()
+        settingsVC.modalPresentationStyle = .overFullScreen
+        root.present(settingsVC, animated: true)
+    }
+    // переход на экран Win
+    private func showWinScreen() {
+        let movesCount = moves
+        let timeElapsed = Int(CACurrentMediaTime() - startTime)
+        
+        SoundManager.shared.playWin()
+        SoundManager.shared.vibrate()
+        
+        let winVC = YouWinViewController(moves: movesCount, time: timeElapsed)
+        winVC.modalPresentationStyle = .fullScreen
+        
+        if let root = view?.window?.rootViewController {
+            root.present(winVC, animated: true)
+        }
     }
 }
