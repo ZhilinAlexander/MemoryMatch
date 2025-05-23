@@ -34,18 +34,28 @@ class GameScene: SKScene {
     }
     // UI интерфейс: кнопки, таймер, ходы
     private func setupUI() {
-        // SETTINGS
-        let settings = createButton(named: "Settings", position: CGPoint(x: 60, y: size.height - 90))
-        addChild(settings)
-        // Нижние кнопки: Pause, Left, Undo
-        let pause = createButton(named: "Pause", position: CGPoint(x: 80, y: 120))
-        let left = createButton(named: "Left", position: CGPoint(x: 200, y: 120))
-        let undo = createButton(named: "Undo", position: CGPoint(x: 320, y: 120))
+        // Нижние кнопки (Pause, Left, Undo)
+        let spacingX = size.width / 4
+        let bottomY = size.height * 0.10
+        
+        let pause = createButton(named: "Pause", position: CGPoint(x: spacingX * 0.75, y: bottomY))
+        let left  = createButton(named: "Left",  position: CGPoint(x: spacingX * 2.0, y: bottomY))
+        let undo  = createButton(named: "Undo",  position: CGPoint(x: spacingX * 3.25, y: bottomY))
+        
         addChild(pause)
         addChild(left)
         addChild(undo)
+
+        // Кнопка Settings — вверху слева 
+        let settings = createButton(named: "Settings", position: CGPoint(
+            x: size.width * 0.11,  // от левого края экрана
+            y: size.height * 0.9   //  от низа (выше табло)
+        ))
+        addChild(settings)
     }
     private func setupStatsHeader() {
+        
+
         let headerWidth = size.width * 0.9
         let headerHeight = headerWidth * (120.0 / 973.0)
         let topMargin = size.height * 0.80
@@ -56,25 +66,30 @@ class GameScene: SKScene {
         statsNode.zPosition = 2
         addChild(statsNode)
         
+        statsNode.name = "StatsHeader"
+        
         // Move Label
         moveLabel = SKLabelNode(text: "Moves: 0")
-        moveLabel.fontName = "AvenirNext-Bold"
-        moveLabel.fontSize = 24
-        moveLabel.fontColor = .white
-        moveLabel.horizontalAlignmentMode = .left
-        moveLabel.verticalAlignmentMode = .center
-        moveLabel.position = CGPoint(x: -headerWidth / 2 + 40, y: 0)
-        statsNode.addChild(moveLabel)
-        
+           moveLabel.fontName = "AvenirNext-Bold"
+           moveLabel.fontColor = .white
+           moveLabel.horizontalAlignmentMode = .left
+           moveLabel.verticalAlignmentMode = .center
+           moveLabel.position = CGPoint(x: -headerWidth / 2 + 40, y: 0)
+           statsNode.addChild(moveLabel)
         // Timer Label — справа
         timerLabel = SKLabelNode(text: "Time: 0s")
-        timerLabel.fontName = "AvenirNext-Bold"
-        timerLabel.fontSize = 24
-        timerLabel.fontColor = .white
-        timerLabel.horizontalAlignmentMode = .right
-        timerLabel.verticalAlignmentMode = .center
-        timerLabel.position = CGPoint(x: headerWidth / 2 - 40, y: 0)
-        statsNode.addChild(timerLabel)
+            timerLabel.fontName = "AvenirNext-Bold"
+            timerLabel.fontColor = .white
+            timerLabel.horizontalAlignmentMode = .right
+            timerLabel.verticalAlignmentMode = .center
+            timerLabel.position = CGPoint(x: headerWidth / 2 - 40, y: 0)
+            statsNode.addChild(timerLabel)
+
+        // Масштаб шрифта для малых экранов
+            let isSmallDevice = size.height < 700
+            let fontSize: CGFloat = isSmallDevice ? 18 : 24
+            moveLabel.fontSize = fontSize
+            timerLabel.fontSize = fontSize
     }
     private func createLabel(text: String, position: CGPoint) -> SKLabelNode {
         let label = SKLabelNode(text: text)
@@ -95,24 +110,25 @@ class GameScene: SKScene {
     }
     // Карточки
     private func setupCards() {
+        let isSmallDevice = size.height < 700
         // Названия слотов, по 2 каждого → 8 пар = 16 карт
         let faceNames = (1...8).flatMap { ["Slot\($0)", "Slot\($0)"] }.shuffled()
-        
-        let rows = 4, cols = 4
-        let spacing: CGFloat = 20
-        let cardWidth = size.width * 0.18
-        let cardHeight = cardWidth * 1.2
-        
-        let totalWidth = CGFloat(cols) * cardWidth + CGFloat(cols - 1) * spacing
-        let totalHeight = CGFloat(rows) * cardHeight + CGFloat(rows - 1) * spacing
-        
-        let startX = (size.width - totalWidth) / 2 + cardWidth / 2
-        let startY = size.height / 2 + totalHeight / 2 - cardHeight / 2
-        
-        for row in 0..<rows {
-            for col in 0..<cols {
-                let index = row * cols + col
-                
+
+           let rows = 4, cols = 4
+           let spacing: CGFloat = isSmallDevice ? 12 : 20
+           let cardWidth = size.width * (isSmallDevice ? 0.16 : 0.18)
+           let cardHeight = cardWidth * 1.2
+
+           let totalWidth = CGFloat(cols) * cardWidth + CGFloat(cols - 1) * spacing
+           let totalHeight = CGFloat(rows) * cardHeight + CGFloat(rows - 1) * spacing
+
+           let startX = (size.width - totalWidth) / 2 + cardWidth / 2
+           let startY = size.height / 2 + totalHeight / 2 - cardHeight / 2
+
+           for row in 0..<rows {
+               for col in 0..<cols {
+                   let index = row * cols + col
+
                 // Карта
                 let card = SKSpriteNode(imageNamed: "SlotBack")
                 card.name = "card_\(index)"
@@ -148,15 +164,12 @@ class GameScene: SKScene {
         
         if let node = atPoint(location) as? SKSpriteNode, let name = node.name {
             
-            //  Список кнопок, которым нужна анимация
             let animatedButtons = ["Settings", "Pause", "Undo", "Left"]
             
             if animatedButtons.contains(name) {
-                let originalScale = node.xScale
-                let pressIn = SKAction.scale(to: 0.9, duration: 0.06)
-                let pressOut = SKAction.scale(to: 1.0, duration: 0.06)
-                let sequence = SKAction.sequence([pressIn, pressOut])
-                
+                let dim = SKAction.fadeAlpha(to: 0.6, duration: 0.05)
+                let restore = SKAction.fadeAlpha(to: 1.0, duration: 0.05)
+                let sequence = SKAction.sequence([dim, restore])
                 node.run(sequence) {
                     self.handleButtonTap(name)
                 }
@@ -167,10 +180,11 @@ class GameScene: SKScene {
             }
         }
     }
+
     // Логика нажатия на карту
     private func handleCardTap(_ card: SKSpriteNode) {
-        if !isGameActive {
-            isGameActive = true
+       if !isGameActive {
+           isGameActive = true
         }
         guard let face = card.userData?["face"] as? String,
               card.userData?["matched"] as? Bool == false,
